@@ -18,7 +18,15 @@ from model_effNet import EfficientNet, efficientnet_b0, efficientnet_b1, efficie
 from model_uNet import UNet
 
 def trainEffNet(batch_size, learning_rate, num_epoch):
+    print("===========================================")
+    print(batch_size, learning_rate, num_epoch)
+    print("===========================================")
+    # define the image transformation for trains_ds
+    # in paper, using FiveCrop, normalize, horizontal reflection
+    train_transformer = transforms.Compose([
+                    transforms.RandomHorizontalFlip()
 
+    ])
 
     # define the image transforamtion for test0_ds
     test_transformer = transforms.Compose([
