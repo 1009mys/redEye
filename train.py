@@ -72,10 +72,10 @@ def trainEffNet():
     
    
     device = torch.device("cuda")
-    print("==========================================")
-    print(device)
-    print("==========================================")
-    model = efficientnet_b7(11).to(device)
+
+    model = nn.DataParallel(efficientnet_b7(11), device_ids = [0,1,2,3])   # 4개의 GPU를 이용할 경우
+
+    model.to(device)
 
     loss_func = nn.CrossEntropyLoss()  # 크로스엔트로피 loss 객체, softmax를 포함함
     optimizer = optim.Adam(model.parameters(),  # 만든 모델의 파라미터를 넣어줘야 함
