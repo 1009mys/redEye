@@ -32,7 +32,7 @@ class Swish(nn.Module):
 
 # SE Block
 class SEBlock(nn.Module):
-    def __init__(self, in_channels, r=4):
+    def __init__(self, in_channels, r=4): 
         super().__init__()
 
         self.squeeze = nn.AdaptiveAvgPool2d((1,1))

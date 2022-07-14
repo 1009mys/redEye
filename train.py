@@ -31,7 +31,7 @@ def trainEffNet():
     ])
 
     redEye_train = RedEye(annotations_file="./data/redEye/annotation_train.csv", img_dir='./data/redEye/train', transform=train_transformer)
-    redEye_test = RedEye(annotations_file="./data/redEye/annotation_test.csv", img_dir='./data/redEye/test')
+    redEye_test  = RedEye(annotations_file="./data/redEye/annotation_test.csv", img_dir='./data/redEye/test')
     """
     redEye_train = dset.ImageNet("./data/ImageNet",
                                train=True,
@@ -72,7 +72,7 @@ def trainEffNet():
     
    
 
-    model = efficientnet_b0(11).cuda()
+    model = efficientnet_b7(11).cuda()
 
     loss_func = nn.CrossEntropyLoss()  # 크로스엔트로피 loss 객체, softmax를 포함함
     optimizer = optim.Adam(model.parameters(),  # 만든 모델의 파라미터를 넣어줘야 함
@@ -127,9 +127,6 @@ def trainEffNet():
                     100. * correct / len(test_loader.dataset)))
 
                 print('-----------------')
-
-    
-                
 
 if __name__ == "__main__":
     trainEffNet()
