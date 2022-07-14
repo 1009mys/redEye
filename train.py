@@ -147,9 +147,9 @@ if __name__ == "__main__":
     num_epoch = 500
 
     parser = OptionParser()
-    parser.add_option("--batch", "-b", default=8, dest=batch_size)
-    parser.add_option("--learning_rate", "-l", default=0.001, dest=learning_rate)
-    parser.add_option("--epoch", "-e", default=500, dest=num_epoch)
+    parser.add_option("--batch", "-b", default=8, dest="batch_size")
+    parser.add_option("--learning_rate", "-l", default=0.001, dest="learning_rate")
+    parser.add_option("--epoch", "-e", default=500, dest="num_epoch")
     
 
     
