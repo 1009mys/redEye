@@ -82,7 +82,7 @@ def trainEffNet(parser):
                              drop_last=True)
     
    
-    device = torch.device("cuda")
+    
 
     model = ""
     if modelNum==0:
@@ -102,7 +102,10 @@ def trainEffNet(parser):
     elif modelNum==7:
         model = efficientnet_b7(11)
 
-    model = nn.DataParallel(efficientnet_b7(11))   # 4개의 GPU를 이용할 경우
+    NGPU = torch.cuda.device_count()
+    device = torch.device("cuda")
+
+    model = nn.DataParallel(model, device_ids=list(range(NGPU)))   # 4개의 GPU를 이용할 경우
     print("-------------------------")
     print("-------------------------")
     model.to(device)
