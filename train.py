@@ -74,12 +74,16 @@ def trainEffNet(parser):
                               batch_size=batch_size,
                               shuffle=True,
                               num_workers=options.workers,
-                              drop_last=True)
+                              drop_last=True,
+                              pin_memory=True
+                              )
     test_loader = DataLoader(redEye_test,
                              batch_size=batch_size,
                              shuffle=False,
                              num_workers=options.workers,
-                             drop_last=True)
+                             drop_last=True,
+                             pin_memory=True
+                             )
     
    
     
@@ -105,8 +109,10 @@ def trainEffNet(parser):
     NGPU = torch.cuda.device_count()
     device = torch.device("cuda")
 
-    model = nn.DataParallel(model, device_ids=list(range(NGPU)))   # 4개의 GPU를 이용할 경우
+    model = nn.parallel.DistributedDataParallel(model, device_ids=list(range(NGPU)))   # 4개의 GPU를 이용할 경우
     print("-------------------------")
+    for i in range(NGPU):
+        torch.cuda.get_device_name(i)
     print("-------------------------")
     model.to(device)
 
