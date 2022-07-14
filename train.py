@@ -22,7 +22,7 @@ def trainEffNet(parser):
     (options, args) = parser.parse_args()
 
     batch_size = int(options.batch_size)
-    learning_rate = int(options.learning_rate)
+    learning_rate = float(options.learning_rate)
     num_epoch = int(options.num_epoch)
 
     print("===========================================")
