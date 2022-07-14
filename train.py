@@ -14,16 +14,17 @@ import torchvision.transforms as transforms # pytorch 모델을 위한 데이터
 from torch.utils.data import DataLoader # train,test 데이터를 loader객체로 만들어주기 위해서
 
 from dataLoader import RedEye
-from model_effNet import EfficientNet, efficientnet_b0, efficientnet_b1, efficientnet_b2, efficientnet_b7
+from model_effNet import efficientnet_b0, efficientnet_b1, efficientnet_b2, efficientnet_b3, efficientnet_b4, efficientnet_b5, efficientnet_b6, efficientnet_b7
 from model_uNet import UNet
 
 def trainEffNet(parser):
 
     (options, args) = parser.parse_args()
 
-    batch_size = int(options.batch_size)
-    learning_rate = float(options.learning_rate)
-    num_epoch = int(options.num_epoch)
+    batch_size = options.batch_size
+    learning_rate = options.learning_rate
+    num_epoch = options.num_epoch
+    modelNum = options.model
 
     print("===========================================")
     print(batch_size, learning_rate, num_epoch)
@@ -72,23 +73,37 @@ def trainEffNet(parser):
     train_loader = DataLoader(redEye_train,
                               batch_size=batch_size,
                               shuffle=True,
-                              num_workers=1,
+                              num_workers=options.workers,
                               drop_last=True)
     test_loader = DataLoader(redEye_test,
                              batch_size=batch_size,
                              shuffle=False,
-                             num_workers=1,
+                             num_workers=options.workers,
                              drop_last=True)
     
    
     device = torch.device("cuda")
 
-    model = nn.DataParallel(efficientnet_b7(11), device_ids = [0,1,2,3])   # 4개의 GPU를 이용할 경우
+    model = ""
+    if modelNum==0:
+        model = efficientnet_b0(11)
+    elif modelNum==1:
+        model = efficientnet_b1(11)
+    elif modelNum==2:
+        model = efficientnet_b2(11)
+    elif modelNum==3:
+        model = efficientnet_b3(11)
+    elif modelNum==4:
+        model = efficientnet_b4(11)
+    elif modelNum==5:
+        model = efficientnet_b5(11)
+    elif modelNum==6:
+        model = efficientnet_b6(11)
+    elif modelNum==7:
+        model = efficientnet_b7(11)
+
+    model = nn.DataParallel(efficientnet_b7(11))   # 4개의 GPU를 이용할 경우
     print("-------------------------")
-    print(torch.cuda.get_device_name(0))
-    print(torch.cuda.get_device_name(1))
-    print(torch.cuda.get_device_name(2))
-    print(torch.cuda.get_device_name(3))
     print("-------------------------")
     model.to(device)
 
@@ -114,7 +129,7 @@ def trainEffNet(parser):
 
             # optimizer 초기화 및 weight 업데이트
             optimizer.zero_grad()  # 그래디언트 제로로 만들어주는 과정
-            loss.backward()  # backpropagation
+            loss.mean().backward()  # backpropagation
             optimizer.step()
 
             if idx % 100 == 0:
@@ -152,9 +167,11 @@ if __name__ == "__main__":
     num_epoch = 500
 
     parser = OptionParser()
-    parser.add_option("--batch", "-b", default=8, dest="batch_size")
-    parser.add_option("--learning_rate", "-l", default=0.001, dest="learning_rate")
-    parser.add_option("--epoch", "-e", default=500, dest="num_epoch")
+    parser.add_option("--batch", "-b", default=4, dest="batch_size", type=int)
+    parser.add_option("--learning_rate", "-l", default=0.001, dest="learning_rate", type=float)
+    parser.add_option("--epoch", "-e", default=500, dest="num_epoch", type=int)
+    parser.add_option("--model", "-m", default=0, dest="model", type=int)
+    parser.add_option("--workers", "-w", default=1, dest="workers", type=int)
     
 
     
