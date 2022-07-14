@@ -1,3 +1,7 @@
+from email.policy import default
+import sys, getopt
+from optparse import OptionParser
+
 from torch.utils.data import DataLoader
 import numpy as np
 
@@ -13,17 +17,8 @@ from dataLoader import RedEye
 from model_effNet import EfficientNet, efficientnet_b0, efficientnet_b1, efficientnet_b2, efficientnet_b7
 from model_uNet import UNet
 
-def trainEffNet():
-    batch_size = 8
-    learning_rate = 0.001
-    num_epoch = 500
-    
-    # define the image transformation for trains_ds
-    # in paper, using FiveCrop, normalize, horizontal reflection
-    train_transformer = transforms.Compose([
-                    transforms.RandomHorizontalFlip()
+def trainEffNet(batch_size, learning_rate, num_epoch):
 
-    ])
 
     # define the image transforamtion for test0_ds
     test_transformer = transforms.Compose([
@@ -132,4 +127,13 @@ def trainEffNet():
                 print('-----------------')
 
 if __name__ == "__main__":
-    trainEffNet()
+    batch_size = 8
+    learning_rate = 0.001
+    num_epoch = 500
+
+    parser = OptionParser()
+    parser.add_option("-batch", "-b", default=8, dest=batch_size)
+    parser.add_option("-learning_rate", "-lr", default=0.001, dest=learning_rate)
+    parser.add_option("-epoch", "-e", default=500, dest=num_epoch)
+
+    trainEffNet(batch_size, learning_rate, num_epoch)
