@@ -71,8 +71,11 @@ def trainEffNet():
                              drop_last=True)
     
    
-
-    model = efficientnet_b7(11).cuda()
+    device = torch.device("cuda")
+    print("==========================================")
+    print(device)
+    print("==========================================")
+    model = efficientnet_b7(11).to(device)
 
     loss_func = nn.CrossEntropyLoss()  # 크로스엔트로피 loss 객체, softmax를 포함함
     optimizer = optim.Adam(model.parameters(),  # 만든 모델의 파라미터를 넣어줘야 함
@@ -83,10 +86,10 @@ def trainEffNet():
     for epoch in range(num_epoch):
         for idx, (image, label) in enumerate(train_loader):
             model.train()
-            x = image.to(torch.device('cuda'))
+            x = image.to(device)
             x = x.float()
             # label = list(label)
-            y_ = label.to(torch.device('cuda'))
+            y_ = label.to(device)
 
             # train데이터 셋 feedforwd 과정
             output = model.forward(x)
