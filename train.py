@@ -109,7 +109,7 @@ def trainEffNet(parser):
     NGPU = torch.cuda.device_count()
     device = torch.device("cuda")
 
-    model = nn.parallel.DistributedDataParallel(model)   # 4개의 GPU를 이용할 경우
+    model = nn.DataParallel(model)   # 4개의 GPU를 이용할 경우
     print("-------------------------")
     for i in range(NGPU):
         torch.cuda.get_device_name(i)
