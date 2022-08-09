@@ -17,6 +17,10 @@ from dataLoader import RedEye
 from model_effNet import efficientnet_b0, efficientnet_b1, efficientnet_b2, efficientnet_b3, efficientnet_b4, efficientnet_b5, efficientnet_b6, efficientnet_b7
 from model_uNet import UNet
 
+from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, classification_report
+
+from copy import deepcopy
+
 def trainEffNet(parser):
 
     (options, args) = parser.parse_args()
@@ -25,14 +29,19 @@ def trainEffNet(parser):
     learning_rate = options.learning_rate
     num_epoch = options.num_epoch
     modelNum = options.model
+    class_num = options.class_num
 
     print("===========================================")
-    print(batch_size, learning_rate, num_epoch)
+    print("Train Start")
     print("===========================================")
     # define the image transformation for trains_ds
     # in paper, using FiveCrop, normalize, horizontal reflection
     train_transformer = transforms.Compose([
-                    transforms.RandomHorizontalFlip()
+                    transforms.RandomHorizontalFlip(),
+                    #transforms.Grayscale(1),
+                    transforms.RandomAffine(degrees=(0, 360))
+
+
 
     ])
 
@@ -120,6 +129,12 @@ def trainEffNet(parser):
     optimizer = optim.Adam(model.parameters(),  # 만든 모델의 파라미터를 넣어줘야 함
                            lr=learning_rate)
 
+    loss_list = []
+    acc_list = []
+    best_acc = 0
+    best_f1 = 0
+    best_acc_model = None 
+    best_f1_model = None
    
 
     for epoch in range(num_epoch):
@@ -141,34 +156,81 @@ def trainEffNet(parser):
             loss.mean().backward()  # backpropagation
             optimizer.step()
 
-            if idx % 100 == 0:
-                print('epoch : ', epoch)
-                print('loss : ', loss.data)
+            #misc (acc 계산, etc) 
+            y_pred = torch.max(output, 1)[1]
+            acc = accuracy_score(y_pred.data.cpu(), label.data.cpu())
+            f_score = f1_score(y_pred.data.cpu(), label.data.cpu(), average='macro')
+
+            if acc > best_acc:
+                best_acc = acc
+                best_acc_model = deepcopy(model.state_dict())
+
+                with open("best_acc.txt", "w") as text_file:
+                    print(classification_report(labels, guesses, digits=3), file=text_file)
+
+            if f_score > best_f1:
+                best_f1 = f_score
+                best_f1_model = deepcopy(model.state_dict())
                 
+                with open("best_ㄹ1.txt", "w") as text_file:
+                    print(classification_report(labels, guesses, digits=3), file=text_file)
 
-                model.eval()
-                test_loss = 0
-                correct = 0
-                criterion =  nn.CrossEntropyLoss(reduction='sum')
 
-                with torch.no_grad():
-                    for data, target in test_loader:
-                        data, target = data.to(torch.device('cuda')), target.to(torch.device('cuda'))
-                        data=data.float()
-                        output = model(data)
-                        #print(output, target)
-                        loss = criterion(output, target)
-                        test_loss +=  loss.item()
-                        pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
-                        correct += pred.eq(target.view_as(pred)).sum().item()
+            loss_list.append(loss.item())
+            acc_list.append(acc)
 
-                test_loss /= len(test_loader.dataset)
+            #if idx % 100 == 0:
+        print('epoch : ', epoch)
+        print('loss : ', loss.data)
+        
 
-                print('\nTest set: Average loss: {:.4f}, Accuracy: {}/{} ({:.0f}%)\n'.format(
-                    test_loss, correct, len(test_loader.dataset),
-                    100. * correct / len(test_loader.dataset)))
+        model.eval()
+        test_loss = 0
+        correct = 0
+        criterion =  nn.CrossEntropyLoss(reduction='sum')
 
-                print('-----------------')
+        guesses = np.array([])
+        labels = np.array([])
+
+        with torch.no_grad():
+            for data, target in test_loader:
+                data, target = data.to(torch.device('cuda')), target.to(torch.device('cuda'))
+                data=data.float()
+                output = model(data)
+                #print(output, target)
+                loss = criterion(output, target)
+                test_loss +=  loss.item()
+                pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
+                correct += pred.eq(target.view_as(pred)).sum().item()
+
+                tmp1 = np.array(pred.to('cpu'))
+                tmp2 = np.array(target.to('cpu'))
+
+                tt1 = np.array([tmp1[0][0], tmp1[1][0]])
+                tt2 = np.array([tmp2[0], tmp2[1]])
+
+                guesses = np.append(guesses, tt1)
+                labels = np.append(labels, tt2)
+
+        guesses = guesses.astype(int)
+        labels = labels.astype(int)
+
+        guesses = list(guesses)
+        labels = list(labels)
+
+        print(guesses,'\n',labels)
+
+        print(classification_report(labels, guesses, labels=[0,1,2,3,4,5,6,7,8,9,10]))
+        #print('accuracy:', round(accuracy_score(labels, guesses), ndigits=3))
+        #print('recall score:', round(recall_score(labels, guesses, average='micro'), ndigits=3))
+        #print('precision score:', round(precision_score(labels, guesses, average='micro'), ndigits=3))
+        #print('f1 score:', round(f1_score(labels, guesses, average='micro'), ndigits=3))
+
+        print('-----------------')
+    
+    torch.save(best_acc_model, './best_acc.pt')
+    torch.save(best_f1_model, './best_f1.pt')
+        
 
 if __name__ == "__main__":
     batch_size = 8
@@ -176,11 +238,12 @@ if __name__ == "__main__":
     num_epoch = 500
 
     parser = OptionParser()
-    parser.add_option("--batch", "-b", default=4, dest="batch_size", type=int)
-    parser.add_option("--learning_rate", "-l", default=0.001, dest="learning_rate", type=float)
+    parser.add_option("--batch", "-b", default=2, dest="batch_size", type=int)
+    parser.add_option("--learning_rate", "-l", default=0.0001, dest="learning_rate", type=float)
     parser.add_option("--epoch", "-e", default=500, dest="num_epoch", type=int)
     parser.add_option("--model", "-m", default=0, dest="model", type=int)
     parser.add_option("--workers", "-w", default=1, dest="workers", type=int)
+    parser.add_option("--class_num", "-c", default=11, dest="class_num", type=int)
     
 
     
