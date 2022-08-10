@@ -121,7 +121,7 @@ def trainEffNet(parser):
     model = nn.DataParallel(model)   # 4개의 GPU를 이용할 경우
     print("-------------------------")
     for i in range(NGPU):
-        torch.cuda.get_device_name(i)
+        print(torch.cuda.get_device_name(i))
     print("-------------------------")
     model.to(device)
 
