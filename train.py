@@ -156,24 +156,7 @@ def trainEffNet(parser):
             loss.mean().backward()  # backpropagation
             optimizer.step()
 
-            #misc (acc 계산, etc) 
-            y_pred = torch.max(output, 1)[1]
-            acc = accuracy_score(y_pred.data.cpu(), label.data.cpu())
-            f_score = f1_score(y_pred.data.cpu(), label.data.cpu(), average='macro')
-
-            if acc > best_acc:
-                best_acc = acc
-                best_acc_model = deepcopy(model.state_dict())
-
-                with open("best_acc.txt", "w") as text_file:
-                    print(classification_report(labels, guesses, digits=3), file=text_file)
-
-            if f_score > best_f1:
-                best_f1 = f_score
-                best_f1_model = deepcopy(model.state_dict())
-                
-                with open("best_ㄹ1.txt", "w") as text_file:
-                    print(classification_report(labels, guesses, digits=3), file=text_file)
+            
 
 
             loss_list.append(loss.item())
@@ -221,6 +204,25 @@ def trainEffNet(parser):
         print(guesses,'\n',labels)
 
         print(classification_report(labels, guesses, labels=[0,1,2,3,4,5,6,7,8,9,10]))
+
+        #misc (acc 계산, etc) 
+        acc = accuracy_score(labels, guesses)
+        f_score = f1_score(labels, guesses, average='macro')
+
+        if acc > best_acc:
+            best_acc = acc
+            best_acc_model = deepcopy(model.state_dict())
+
+            with open("best_acc.txt", "w") as text_file:
+                print(classification_report(labels, guesses, digits=3), file=text_file)
+
+        if f_score > best_f1:
+            best_f1 = f_score
+            best_f1_model = deepcopy(model.state_dict())
+            
+            with open("best_f1.txt", "w") as text_file:
+                print(classification_report(labels, guesses, digits=3), file=text_file)
+
         #print('accuracy:', round(accuracy_score(labels, guesses), ndigits=3))
         #print('recall score:', round(recall_score(labels, guesses, average='micro'), ndigits=3))
         #print('precision score:', round(precision_score(labels, guesses, average='micro'), ndigits=3))
