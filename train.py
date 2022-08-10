@@ -159,8 +159,7 @@ def trainEffNet(parser):
             
 
 
-            loss_list.append(loss.item())
-            acc_list.append(acc)
+            
 
             #if idx % 100 == 0:
         print('epoch : ', epoch)
@@ -208,6 +207,9 @@ def trainEffNet(parser):
         #misc (acc 계산, etc) 
         acc = accuracy_score(labels, guesses)
         f_score = f1_score(labels, guesses, average='macro')
+
+        loss_list.append(loss.item())
+        acc_list.append(acc)
 
         if acc > best_acc:
             best_acc = acc
