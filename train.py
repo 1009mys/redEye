@@ -237,9 +237,6 @@ def trainEffNet(parser):
         
 
 if __name__ == "__main__":
-    batch_size = 8
-    learning_rate = 0.001
-    num_epoch = 500
 
     parser = OptionParser()
     parser.add_option("--batch", "-b", default=2, dest="batch_size", type=int)
