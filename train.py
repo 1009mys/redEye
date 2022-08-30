@@ -21,6 +21,11 @@ from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_sc
 
 from copy import deepcopy
 
+from efficientnet_pytorch import EfficientNet
+
+
+
+
 def trainEffNet(parser):
 
     (options, args) = parser.parse_args()
@@ -30,6 +35,8 @@ def trainEffNet(parser):
     num_epoch = options.num_epoch
     modelNum = options.model
     class_num = options.class_num
+    data = options.data
+    result_name = options.result_name
 
     print("===========================================")
     print("Train Start")
@@ -50,8 +57,8 @@ def trainEffNet(parser):
                     
     ])
 
-    redEye_train = RedEye(annotations_file="./data/redEye/annotation_train.csv", img_dir='./data/redEye/train', transform=train_transformer)
-    redEye_test  = RedEye(annotations_file="./data/redEye/annotation_test.csv", img_dir='./data/redEye/test')
+    redEye_train = RedEye(annotations_file = data + "/annotation_train.csv", img_dir = data + '/train', transform=train_transformer)
+    redEye_test  = RedEye(annotations_file = data + "/annotation_test.csv",  img_dir = data + '/test')
     """
     redEye_train = dset.ImageNet("./data/ImageNet",
                                train=True,
@@ -90,30 +97,48 @@ def trainEffNet(parser):
                              batch_size=batch_size,
                              shuffle=False,
                              num_workers=options.workers,
-                             drop_last=True,
+                             drop_last=False,
                              pin_memory=True
                              )
     
    
     
 
-    model = ""
-    if modelNum==0:
-        model = efficientnet_b0(11)
-    elif modelNum==1:
-        model = efficientnet_b1(11)
-    elif modelNum==2:
-        model = efficientnet_b2(11)
-    elif modelNum==3:
-        model = efficientnet_b3(11)
-    elif modelNum==4:
-        model = efficientnet_b4(11)
-    elif modelNum==5:
-        model = efficientnet_b5(11)
-    elif modelNum==6:
-        model = efficientnet_b6(11)
-    elif modelNum==7:
-        model = efficientnet_b7(11)
+    model = None
+
+    if modelNum=='0':
+        model = efficientnet_b0(class_num)
+    elif modelNum=='1':
+        model = efficientnet_b1(class_num)
+    elif modelNum=='2':
+        model = efficientnet_b2(class_num)
+    elif modelNum=='3':
+        model = efficientnet_b3(class_num)
+    elif modelNum=='4':
+        model = efficientnet_b4(class_num)
+    elif modelNum=='5':
+        model = efficientnet_b5(class_num)
+    elif modelNum=='6':
+        model = efficientnet_b6(class_num)
+    elif modelNum=='7':
+        model = efficientnet_b7(class_num)
+
+    elif modelNum=='-0':
+        model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=class_num)
+    elif modelNum=='-1':
+        model = EfficientNet.from_pretrained('efficientnet-b1', num_classes=class_num)
+    elif modelNum=='-2':
+        model = EfficientNet.from_pretrained('efficientnet-b2', num_classes=class_num)
+    elif modelNum=='-3':
+        model = EfficientNet.from_pretrained('efficientnet-b3', num_classes=class_num)
+    elif modelNum=='-4':
+        model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=class_num)
+    elif modelNum=='-5':
+        model = EfficientNet.from_pretrained('efficientnet-b5', num_classes=class_num)
+    elif modelNum=='-6':
+        model = EfficientNet.from_pretrained('efficientnet-b6', num_classes=class_num)
+    elif modelNum=='-7':
+        model = EfficientNet.from_pretrained('efficientnet-b6', num_classes=class_num)
 
     NGPU = torch.cuda.device_count()
     device = torch.device("cuda")
@@ -163,7 +188,7 @@ def trainEffNet(parser):
 
             #if idx % 100 == 0:
         print('epoch : ', epoch)
-        print('loss : ', loss.data)
+        #print('loss : ', loss.data)
         
 
         model.eval()
@@ -175,24 +200,26 @@ def trainEffNet(parser):
         labels = np.array([])
 
         with torch.no_grad():
-            for data, target in test_loader:
+            for idx, (data, target) in enumerate(test_loader):
                 data, target = data.to(torch.device('cuda')), target.to(torch.device('cuda'))
                 data=data.float()
                 output = model(data)
                 #print(output, target)
-                loss = criterion(output, target)
-                test_loss +=  loss.item()
+                lossT = criterion(output, target)
+                test_loss +=  lossT.item()
                 pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
                 correct += pred.eq(target.view_as(pred)).sum().item()
 
                 tmp1 = np.array(pred.to('cpu'))
                 tmp2 = np.array(target.to('cpu'))
 
-                tt1 = np.array([tmp1[0][0], tmp1[1][0]])
-                tt2 = np.array([tmp2[0], tmp2[1]])
+                tt1 = np.array(tmp1[:])
+                tt2 = np.array(tmp2[:])
 
                 guesses = np.append(guesses, tt1)
                 labels = np.append(labels, tt2)
+
+                #print(len(guesses))
 
         guesses = guesses.astype(int)
         labels = labels.astype(int)
@@ -208,22 +235,28 @@ def trainEffNet(parser):
         acc = accuracy_score(labels, guesses)
         f_score = f1_score(labels, guesses, average='macro')
 
-        loss_list.append(loss.item())
-        acc_list.append(acc)
 
         if acc > best_acc:
             best_acc = acc
             best_acc_model = deepcopy(model.state_dict())
 
-            with open("best_acc.txt", "w") as text_file:
+            with open('./result/' + modelNum + '_' + result_name + "_best_acc.txt", "w") as text_file:
+                print("epoch:", epoch)
+                print("train loss:", test_loss)
                 print(classification_report(labels, guesses, digits=3), file=text_file)
+            
+            torch.save(best_acc_model, './result/' + modelNum + '_' + result_name + '_best_acc.pt')
 
         if f_score > best_f1:
             best_f1 = f_score
             best_f1_model = deepcopy(model.state_dict())
             
-            with open("best_f1.txt", "w") as text_file:
+            with open('./result/' + modelNum + '_' + result_name + "_best_f1.txt", "w") as text_file:
+                print("epoch:", epoch)
+                print("train loss:", test_loss)
                 print(classification_report(labels, guesses, digits=3), file=text_file)
+
+            torch.save(best_f1_model, './result/' + modelNum + '_' + result_name + '_best_f1.pt')
 
         #print('accuracy:', round(accuracy_score(labels, guesses), ndigits=3))
         #print('recall score:', round(recall_score(labels, guesses, average='micro'), ndigits=3))
@@ -232,19 +265,19 @@ def trainEffNet(parser):
 
         print('-----------------')
     
-    torch.save(best_acc_model, './best_acc.pt')
-    torch.save(best_f1_model, './best_f1.pt')
         
 
 if __name__ == "__main__":
 
     parser = OptionParser()
-    parser.add_option("--batch", "-b", default=2, dest="batch_size", type=int)
+    parser.add_option("--batch", "-b", default=16, dest="batch_size", type=int)
     parser.add_option("--learning_rate", "-l", default=0.0001, dest="learning_rate", type=float)
     parser.add_option("--epoch", "-e", default=500, dest="num_epoch", type=int)
-    parser.add_option("--model", "-m", default=0, dest="model", type=int)
+    parser.add_option("--model", "-m", default='0', dest="model", type=str)
     parser.add_option("--workers", "-w", default=1, dest="workers", type=int)
     parser.add_option("--class_num", "-c", default=11, dest="class_num", type=int)
+    parser.add_option("--data", "-d", default=None, dest="data", type=str)
+    parser.add_option("--result_name", "-n", default="", dest="result_name", type=str)
     
 
     
