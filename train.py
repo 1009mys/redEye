@@ -1,6 +1,7 @@
 from email.policy import default
 import sys, getopt
 from optparse import OptionParser
+from xmlrpc.client import boolean
 
 from torch.utils.data import DataLoader
 import numpy as np
@@ -16,6 +17,7 @@ from torch.utils.data import DataLoader # train,test 데이터를 loader객체�
 from dataLoader import RedEye
 from model_effNet import efficientnet_b0, efficientnet_b1, efficientnet_b2, efficientnet_b3, efficientnet_b4, efficientnet_b5, efficientnet_b6, efficientnet_b7
 from model_uNet import UNet
+from model_VGG19 import VGG19_Regression
 
 from sklearn.metrics import accuracy_score, recall_score, precision_score, f1_score, classification_report
 
@@ -37,7 +39,9 @@ def trainEffNet(parser):
     class_num = options.class_num
     data = options.data
     result_name = options.result_name
-
+    loss_function = options.loss_function
+    pre_trained = options.pre_trained
+    
     print("===========================================")
     print("Train Start")
     print("===========================================")
@@ -123,36 +127,64 @@ def trainEffNet(parser):
     elif modelNum=='7':
         model = efficientnet_b7(class_num)
 
-    elif modelNum=='-0':
+    elif modelNum=='-0' and pre_trained==1:
         model = EfficientNet.from_pretrained('efficientnet-b0', num_classes=class_num)
-    elif modelNum=='-1':
+    elif modelNum=='-1' and pre_trained==1:
         model = EfficientNet.from_pretrained('efficientnet-b1', num_classes=class_num)
-    elif modelNum=='-2':
+    elif modelNum=='-2' and pre_trained==1:
         model = EfficientNet.from_pretrained('efficientnet-b2', num_classes=class_num)
-    elif modelNum=='-3':
+    elif modelNum=='-3' and pre_trained==1:
         model = EfficientNet.from_pretrained('efficientnet-b3', num_classes=class_num)
-    elif modelNum=='-4':
+    elif modelNum=='-4' and pre_trained==1:
         model = EfficientNet.from_pretrained('efficientnet-b4', num_classes=class_num)
-    elif modelNum=='-5':
+    elif modelNum=='-5' and pre_trained==1:
         model = EfficientNet.from_pretrained('efficientnet-b5', num_classes=class_num)
+    elif modelNum=='-6' and pre_trained==1:
+        model = EfficientNet.from_pretrained('efficientnet-b6', num_classes=class_num)
+    elif modelNum=='-7' and pre_trained==1:
+        model = EfficientNet.from_pretrained('efficientnet-b7', num_classes=class_num)
+
+    elif modelNum=='-0':
+        model = EfficientNet.from_name('efficientnet-b0', num_classes=class_num)
+    elif modelNum=='-1':
+        model = EfficientNet.from_name('efficientnet-b1', num_classes=class_num)
+    elif modelNum=='-2':
+        model = EfficientNet.from_name('efficientnet-b2', num_classes=class_num)
+    elif modelNum=='-3':
+        model = EfficientNet.from_name('efficientnet-b3', num_classes=class_num)
+    elif modelNum=='-4':
+        model = EfficientNet.from_name('efficientnet-b4', num_classes=class_num)
+    elif modelNum=='-5':
+        model = EfficientNet.from_name('efficientnet-b5', num_classes=class_num)
     elif modelNum=='-6':
-        model = EfficientNet.from_pretrained('efficientnet-b6', num_classes=class_num)
+        model = EfficientNet.from_name('efficientnet-b6', num_classes=class_num)
     elif modelNum=='-7':
-        model = EfficientNet.from_pretrained('efficientnet-b6', num_classes=class_num)
+        model = EfficientNet.from_name('efficientnet-b7', num_classes=class_num)
+    elif modelNum=='VGG':
+        model = VGG19_Regression()
 
     NGPU = torch.cuda.device_count()
     device = torch.device("cuda")
 
-    model = nn.DataParallel(model)   # 4개의 GPU를 이용할 경우
+    model = nn.DataParallel(model)   # 4개의 GPU를 이용할 경우 pre_trained
     print("-------------------------")
     for i in range(NGPU):
         print(torch.cuda.get_device_name(i))
     print("-------------------------")
     model.to(device)
 
-    loss_func = nn.CrossEntropyLoss()  # 크로스엔트로피 loss 객체, softmax를 포함함
-    optimizer = optim.Adam(model.parameters(),  # 만든 모델의 파라미터를 넣어줘야 함
-                           lr=learning_rate)
+    loss_func = None
+    if loss_function == 'criterion':
+        loss_func = nn.CrossEntropyLoss()  # 크로스엔트로피 loss 객체, softmax를 포함함
+    elif loss_function == 'MSE':
+        loss_func = nn.MSELoss()
+    else:
+        raise Exception("올바른 loss함수가 아님!")
+
+    
+
+    optimizer = optim.Adam(model.parameters(), lr=learning_rate)
+
 
     loss_list = []
     acc_list = []
@@ -167,6 +199,7 @@ def trainEffNet(parser):
             model.train()
             x = image.to(device)
             x = x.float()
+            label = label.float()
             # label = list(label)
             y_ = label.to(device)
 
@@ -194,7 +227,8 @@ def trainEffNet(parser):
         model.eval()
         test_loss = 0
         correct = 0
-        criterion =  nn.CrossEntropyLoss(reduction='sum')
+        
+        loss_func
 
         guesses = np.array([])
         labels = np.array([])
@@ -202,10 +236,11 @@ def trainEffNet(parser):
         with torch.no_grad():
             for idx, (data, target) in enumerate(test_loader):
                 data, target = data.to(torch.device('cuda')), target.to(torch.device('cuda'))
+                target = target.float()
                 data=data.float()
                 output = model(data)
                 #print(output, target)
-                lossT = criterion(output, target)
+                lossT = loss_func(output, target)
                 test_loss +=  lossT.item()
                 pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
                 correct += pred.eq(target.view_as(pred)).sum().item()
@@ -220,8 +255,14 @@ def trainEffNet(parser):
                 labels = np.append(labels, tt2)
 
                 #print(len(guesses))
+        print("guesses: ", guesses)
+        for i in guesses:
+            if i - int(i) > 0.5:
+                i = int(i)+1
+            else:
+                i = int(i)
 
-        guesses = guesses.astype(int)
+        #guesses = guesses.astype(int)
         labels = labels.astype(int)
 
         guesses = list(guesses)
@@ -276,8 +317,12 @@ if __name__ == "__main__":
     parser.add_option("--model", "-m", default='0', dest="model", type=str)
     parser.add_option("--workers", "-w", default=1, dest="workers", type=int)
     parser.add_option("--class_num", "-c", default=11, dest="class_num", type=int)
-    parser.add_option("--data", "-d", default=None, dest="data", type=str)
+    parser.add_option("--data", "-d", default="./data/redEye", dest="data", type=str)
     parser.add_option("--result_name", "-n", default="", dest="result_name", type=str)
+    parser.add_option("--loss", default="criterion", dest="loss_function", type=str)
+    parser.add_option("--pre_trained", default="0", dest="pre_trained", type=int)
+    parser.add_option("--weight", "-W", default="", dest="weight", type=str)
+
     
 
     
