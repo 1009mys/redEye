@@ -51,7 +51,7 @@ def trainEffNet(parser):
                     transforms.RandomHorizontalFlip(),
                     #transforms.Grayscale(1),
                     #transforms.RandomAffine(degrees=(0, 360))
-                    
+                    #transforms
 
 
 
@@ -200,7 +200,7 @@ def trainEffNet(parser):
             model.train()
             x = image.to(device)
             x = x.float()
-            label = label.float()
+            #label = label.float()
             # label = list(label)
             y_ = label.to(device)
 
@@ -237,7 +237,7 @@ def trainEffNet(parser):
         with torch.no_grad():
             for idx, (data, target) in enumerate(test_loader):
                 data, target = data.to(torch.device('cuda')), target.to(torch.device('cuda'))
-                target = target.float()
+                #target = target.float()
                 data=data.float()
                 output = model(data)
                 #print(output, target)
