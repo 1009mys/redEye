@@ -50,7 +50,8 @@ def trainEffNet(parser):
     train_transformer = transforms.Compose([
                     transforms.RandomHorizontalFlip(),
                     #transforms.Grayscale(1),
-                    transforms.RandomAffine(degrees=(0, 360))
+                    #transforms.RandomAffine(degrees=(0, 360))
+                    
 
 
 
