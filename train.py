@@ -212,7 +212,8 @@ def trainEffNet(parser):
 
             # optimizer 초기화 및 weight 업데이트
             optimizer.zero_grad()  # 그래디언트 제로로 만들어주는 과정
-            loss.mean().backward()  # backpropagation
+            loss.backward()  # backpropagation
+            #loss.mean().backward()
             optimizer.step()
 
             
