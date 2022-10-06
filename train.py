@@ -256,15 +256,11 @@ def trainEffNet(parser):
                 labels = np.append(labels, tt2)
 
                 #print(len(guesses))
-        print("guesses: ", guesses)
-        for i in guesses:
-            if i - int(i) > 0.5:
-                i = int(i)+1
-            else:
-                i = int(i)
+                
 
         #guesses = guesses.astype(int)
         labels = labels.astype(int)
+        guesses = guesses.astype(int)
 
         guesses = list(guesses)
         labels = list(labels)
