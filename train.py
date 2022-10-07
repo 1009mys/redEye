@@ -50,8 +50,10 @@ def trainEffNet(parser):
     train_transformer = transforms.Compose([
                     transforms.RandomHorizontalFlip(),
                     #transforms.Grayscale(1),
-                    #transforms.RandomAffine(degrees=(0, 360))
-                    #transforms
+                    transforms.RandomAffine(degrees=(0, 360)),
+                    transforms.GaussianBlur(kernel_size=3),
+                    transforms.RandomRotation(degrees=[0,360]),
+                    transforms.ColorJitter(brightness=0.2)
 
 
 
@@ -200,7 +202,7 @@ def trainEffNet(parser):
             model.train()
             x = image.to(device)
             x = x.float()
-            #label = label.float()
+            label = label.float()
             # label = list(label)
             y_ = label.to(device)
 
@@ -212,7 +214,9 @@ def trainEffNet(parser):
 
             # optimizer 초기화 및 weight 업데이트
             optimizer.zero_grad()  # 그래디언트 제로로 만들어주는 과정
+            f = loss.mean()
             loss.backward()  # backpropagation
+            
             #loss.mean().backward()
             optimizer.step()
 
@@ -312,7 +316,7 @@ if __name__ == "__main__":
     parser.add_option("--batch", "-b", default=16, dest="batch_size", type=int)
     parser.add_option("--learning_rate", "-l", default=0.0001, dest="learning_rate", type=float)
     parser.add_option("--epoch", "-e", default=500, dest="num_epoch", type=int)
-    parser.add_option("--model", "-m", default='0', dest="model", type=str)
+    parser.add_option("--model", "-1", default='0', dest="model", type=str)
     parser.add_option("--workers", "-w", default=1, dest="workers", type=int)
     parser.add_option("--class_num", "-c", default=11, dest="class_num", type=int)
     parser.add_option("--data", "-d", default="./data/redEye", dest="data", type=str)
