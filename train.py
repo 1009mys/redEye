@@ -203,7 +203,7 @@ def trainEffNet(parser):
             model.train()
             x = image.to(device)
             x = x.float()
-            label = label.float()
+            #label = label.float()
             # label = list(label)
             y_ = label.to(device)
 
