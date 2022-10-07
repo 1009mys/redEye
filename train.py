@@ -173,6 +173,7 @@ def trainEffNet(parser):
     print("-------------------------")
     for i in range(NGPU):
         print(torch.cuda.get_device_name(i))
+    print(sys.version)
     print("-------------------------")
     model.to(device)
 
