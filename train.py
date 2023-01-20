@@ -53,7 +53,8 @@ def trainEffNet(parser):
                     transforms.RandomAffine(degrees=(0, 360)),
                     transforms.GaussianBlur(kernel_size=3),
                     transforms.RandomRotation(degrees=[0,360]),
-                    transforms.ColorJitter(brightness=0.2)
+                    transforms.ColorJitter(brightness=0.2),
+                    #transforms.Resize((options.resolution, options.resolution)),
 
 
 
@@ -61,11 +62,11 @@ def trainEffNet(parser):
 
     # define the image transforamtion for test0_ds
     test_transformer = transforms.Compose([
-                    
+                    #transforms.Resize((options.resolution, options.resolution)),
     ])
 
     redEye_train = RedEye(annotations_file = data + "/annotation_train.csv", img_dir = data + '/train', transform=train_transformer)
-    redEye_test  = RedEye(annotations_file = data + "/annotation_test.csv",  img_dir = data + '/test')
+    redEye_test  = RedEye(annotations_file = data + "/annotation_test.csv",  img_dir = data + '/test', transform=test_transformer)
     """
     redEye_train = dset.ImageNet("./data/ImageNet",
                                train=True,
@@ -210,6 +211,8 @@ def trainEffNet(parser):
             # train데이터 셋 feedforwd 과정
             output = model.forward(x)
 
+            #y_ = y_.view(y_.size(0), 1).float()
+            #y_ = y_.float()
             # loss 계산
             loss = loss_func(output, y_)
 
@@ -247,6 +250,7 @@ def trainEffNet(parser):
                 data=data.float()
                 output = model(data)
                 #print(output, target)
+                #target = target.view(target.size(0), 1).float()
                 lossT = loss_func(output, target)
                 test_loss +=  lossT.item()
                 pred = output.argmax(dim=1, keepdim=True) # get the index of the max log-probability
@@ -273,7 +277,7 @@ def trainEffNet(parser):
 
         print(guesses,'\n',labels)
 
-        print(classification_report(labels, guesses, labels=[0,1,2,3,4,5,6,7,8,9,10]))
+        print(classification_report(labels, guesses, labels=range(0, class_num)))
 
         #misc (acc 계산, etc) 
         acc = accuracy_score(labels, guesses)
@@ -285,8 +289,8 @@ def trainEffNet(parser):
             best_acc_model = deepcopy(model.state_dict())
 
             with open('./result/' + modelNum + '_' + result_name + "_best_acc.txt", "w") as text_file:
-                print("epoch:", epoch)
-                print("train loss:", test_loss)
+                print("epoch:", epoch, file=text_file)
+                print("train loss:", test_loss, file=text_file)
                 print(classification_report(labels, guesses, digits=3), file=text_file)
             
             torch.save(best_acc_model, './result/' + modelNum + '_' + result_name + '_best_acc.pt')
@@ -296,8 +300,8 @@ def trainEffNet(parser):
             best_f1_model = deepcopy(model.state_dict())
             
             with open('./result/' + modelNum + '_' + result_name + "_best_f1.txt", "w") as text_file:
-                print("epoch:", epoch)
-                print("train loss:", test_loss)
+                print("epoch:", epoch, file=text_file)
+                print("train loss:", test_loss, file=text_file)
                 print(classification_report(labels, guesses, digits=3), file=text_file)
 
             torch.save(best_f1_model, './result/' + modelNum + '_' + result_name + '_best_f1.pt')
@@ -314,7 +318,7 @@ def trainEffNet(parser):
 if __name__ == "__main__":
 
     parser = OptionParser()
-    parser.add_option("--batch", "-b", default=16, dest="batch_size", type=int)
+    parser.add_option("--batch", "-b", default=1, dest="batch_size", type=int)
     parser.add_option("--learning_rate", "-l", default=0.0001, dest="learning_rate", type=float)
     parser.add_option("--epoch", "-e", default=500, dest="num_epoch", type=int)
     parser.add_option("--model", "-1", default='0', dest="model", type=str)
@@ -325,6 +329,7 @@ if __name__ == "__main__":
     parser.add_option("--loss", default="criterion", dest="loss_function", type=str)
     parser.add_option("--pre_trained", default="0", dest="pre_trained", type=int)
     parser.add_option("--weight", "-W", default="", dest="weight", type=str)
+    parser.add_option("--resolution", "-r", default=224, dest="resolution", type=int)
 
     
 

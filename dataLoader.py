@@ -24,4 +24,4 @@ class RedEye(Dataset):
         
         # print(img_path, label)
         
-        return image, label
+        return image, int(label / 2)
